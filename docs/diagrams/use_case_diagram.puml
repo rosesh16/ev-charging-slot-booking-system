@@ -1,0 +1,87 @@
+@startuml
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor White
+    BorderColor #2B3A42
+    ArrowColor #2B3A42
+}
+skinparam usecase<<deferred>> {
+    BackgroundColor #F0F0F0
+    BorderColor #888888
+    FontColor #777777
+}
+
+actor "EV Driver" as Driver
+actor "System Administrator / Monitoring" as Admin
+actor "Station Operator" as Operator
+
+rectangle "EV Charging Slot Booking System" {
+    package "Authentication & Profile" {
+        usecase "UC-01: Register Account" as UC_Register
+        usecase "UC-02: Authenticate (Login)" as UC_Login
+        usecase "UC-03: Manage EV Profiles" as UC_Vehicles
+        usecase "UC-D1: Verify Phone OTP\n<<deferred>>" as UC_OTP <<deferred>>
+    }
+
+    package "Station & Charger Discovery" {
+        usecase "UC-04: Discover Active Stations" as UC_Stations
+        usecase "UC-05: View Station & Chargers" as UC_StationDetail
+        usecase "UC-06: Filter Chargers by Station" as UC_Chargers
+    }
+
+    package "Slot Reservation & Lifecycle" {
+        usecase "UC-07: Reserve 30-min Slot" as UC_Book
+        usecase "UC-08: View My Bookings" as UC_ViewBookings
+        usecase "UC-09: Cancel Upcoming Booking" as UC_Cancel
+        usecase "UC-D2: On-site Check-in (RFID/QR)\n<<deferred>>" as UC_CheckIn <<deferred>>
+        usecase "UC-D3: Process Payment / Deposit\n<<deferred>>" as UC_Payment <<deferred>>
+    }
+
+    package "System & Infrastructure" {
+        usecase "UC-10: Probe Health Endpoint (/health/)" as UC_Health
+        usecase "UC-D4: OCPP Charger Telemetry\n<<deferred>>" as UC_OCPP <<deferred>>
+        usecase "UC-D5: Manage Station Hardware\n<<deferred>>" as UC_OpStation <<deferred>>
+    }
+}
+
+' Driver relationships (Implemented)
+Driver --> UC_Register
+Driver --> UC_Login
+Driver --> UC_Vehicles
+Driver --> UC_Stations
+Driver --> UC_StationDetail
+Driver --> UC_Chargers
+Driver --> UC_Book
+Driver --> UC_ViewBookings
+Driver --> UC_Cancel
+
+' Driver relationships (Deferred)
+Driver ..> UC_OTP : <<deferred>>
+Driver ..> UC_CheckIn : <<deferred>>
+Driver ..> UC_Payment : <<deferred>>
+
+' Admin / Monitoring
+Admin --> UC_Health
+
+' Operator relationships (Deferred)
+Operator ..> UC_OpStation : <<deferred>>
+Operator ..> UC_OCPP : <<deferred>>
+
+note right of UC_Book
+  Enforces:
+  - Exact 30-min duration
+  - Future start time
+  - Vehicle ownership check
+  - Zero double-booking via
+    PostgreSQL exclusion constraint
+end note
+
+note right of UC_Cancel
+  Enforces:
+  - Owner-only access
+  - Unstarted bookings only
+  - Immediate slot re-availability
+end note
+
+@enduml
