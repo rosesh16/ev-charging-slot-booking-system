@@ -1,7 +1,8 @@
-@'
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 *.egg-info/
 .pytest_cache/
 .coverage
@@ -30,4 +31,3 @@ Thumbs.db
 
 # Logs
 *.log
-'@ | Set-Content -Encoding utf8 .gitignore
