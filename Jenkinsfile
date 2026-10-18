@@ -9,6 +9,7 @@ pipeline {
     environment {
         // Prepend Docker Desktop binary directory for Windows service execution
         PATH = "C:\\Users\\ASUS\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;${env.PATH}"
+        DOCKER_CONFIG = "C:\\Users\\ASUS\\.docker"
         COMPOSE_PROJECT_NAME = "evcharging_ci_${BUILD_NUMBER}"
         POSTGRES_DB = 'ci_evcharging'
         POSTGRES_USER = 'ci_evapp'
