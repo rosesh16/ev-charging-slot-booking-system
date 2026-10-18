@@ -1,0 +1,30 @@
+# Git
+.git/
+.gitignore
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local helper scripts and logs
+powershell.cmd
+*.log
+
+# IDE files
+.vscode/
+.idea/
