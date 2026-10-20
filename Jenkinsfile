@@ -7,8 +7,8 @@ pipeline {
     }
 
     environment {
-        // Prepend Docker Desktop binary directory for Windows service execution
-        PATH = "C:\\Users\\ASUS\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;${env.PATH}"
+        // Prepend Chrome, ChromeDriver, Python scripts, and Docker Desktop binary directories for Windows service execution
+        PATH = "C:\\Program Files\\Google\\Chrome\\Application;C:\\ProgramData\\selenium\\chromedriver;C:\\Users\\ASUS\\AppData\\Local\\Programs\\Python\\Python310\\Scripts;C:\\Users\\ASUS\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;${env.PATH}"
         DOCKER_CONFIG = "C:\\Users\\ASUS\\.docker"
         COMPOSE_PROJECT_NAME = "evcharging_ci_${BUILD_NUMBER}"
         COMPOSE_SMOKE_PROJECT = "evcharging_smoke_${BUILD_NUMBER}"
@@ -106,9 +106,31 @@ pipeline {
             }
         }
 
+        stage('Seed Smoke Database') {
+            steps {
+                bat 'docker compose -f compose.smoke.yaml -p "%COMPOSE_SMOKE_PROJECT%" exec -T web python manage.py loaddata seed_stations'
+            }
+        }
+
         stage('Run Production Smoke Tests') {
             steps {
                 bat 'python scripts/smoke_test.py --base-url "http://127.0.0.1:%SMOKE_NGINX_PORT%"'
+            }
+        }
+
+        stage('Selenium Test Dependencies') {
+            steps {
+                bat 'python -m pip install -r requirements-test.txt'
+            }
+        }
+
+        stage('Run Selenium E2E Tests') {
+            environment {
+                BASE_URL = "http://127.0.0.1:${env.SMOKE_NGINX_PORT}"
+                HEADLESS = 'true'
+            }
+            steps {
+                bat 'python -m pytest tests/e2e -v --junitxml=test-reports/junit.xml'
             }
         }
     }
@@ -126,6 +148,18 @@ pipeline {
         }
         always {
             script {
+                try {
+                    junit testResults: 'test-reports/junit.xml', allowEmptyResults: true
+                } catch (reportErr) {
+                    echo "Could not publish JUnit test results: ${reportErr}"
+                }
+
+                try {
+                    archiveArtifacts artifacts: 'test-reports/screenshots/*.png', allowEmptyArchive: true
+                } catch (archiveErr) {
+                    echo "Could not archive screenshots: ${archiveErr}"
+                }
+
                 def teardownError = null
                 try {
                     bat 'docker compose -f compose.smoke.yaml -p "%COMPOSE_SMOKE_PROJECT%" down -v --remove-orphans'

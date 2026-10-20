@@ -1,0 +1,76 @@
+[
+  {
+    "model": "stations.station",
+    "pk": 1,
+    "fields": {
+      "name": "Downtown Central Hub",
+      "address": "100 Metro Plaza",
+      "city": "Metropolis",
+      "latitude": "40.712800",
+      "longitude": "-74.006000",
+      "is_active": true,
+      "created_at": "2026-10-20T04:58:55.489Z"
+    }
+  },
+  {
+    "model": "stations.station",
+    "pk": 2,
+    "fields": {
+      "name": "Westside Energy Depot",
+      "address": "500 Tech Blvd",
+      "city": "Metropolis",
+      "latitude": "40.730610",
+      "longitude": "-73.935242",
+      "is_active": true,
+      "created_at": "2026-10-20T04:58:55.502Z"
+    }
+  },
+  {
+    "model": "stations.charger",
+    "pk": 1,
+    "fields": {
+      "station": 1,
+      "name": "CH-01",
+      "connector_type": "CCS2",
+      "power_kw": "150.00",
+      "status": "AVAILABLE",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stations.charger",
+    "pk": 2,
+    "fields": {
+      "station": 1,
+      "name": "CH-02",
+      "connector_type": "TYPE_2",
+      "power_kw": "50.00",
+      "status": "OCCUPIED",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stations.charger",
+    "pk": 3,
+    "fields": {
+      "station": 2,
+      "name": "CH-01",
+      "connector_type": "CCS2",
+      "power_kw": "350.00",
+      "status": "AVAILABLE",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stations.charger",
+    "pk": 4,
+    "fields": {
+      "station": 2,
+      "name": "CH-02",
+      "connector_type": "CHADEMO",
+      "power_kw": "50.00",
+      "status": "MAINTENANCE",
+      "is_active": true
+    }
+  }
+]
