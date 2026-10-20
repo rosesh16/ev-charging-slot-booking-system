@@ -39,3 +39,9 @@ dist/
 dist-ssr/
 frontend/dist/
 frontend/node_modules/
+
+# Ansible lab SSH public key
+ansible/target/authorized_keys
+
+# Ansible execution logs
+ansible/logs/

@@ -1,0 +1,118 @@
+---
+- name: Test rollback and recovery for the isolated EV Charging lab
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    project_dir: /mnt/c/DevOps_Project
+    compose_base: "{{ project_dir }}/compose.deploy.yaml"
+    compose_override: "{{ project_dir }}/ansible/deployment/compose.ansible.override.yaml"
+    deployment_env: "{{ lookup('env', 'HOME') }}/ev-ansible-lab/deployment.env"
+    compose_project: evcharging_ansible_lab
+    previous_tag: "1.0.0-build1-19e4663"
+    stable_tag: "1.0.0-build11-496074a"
+
+  tasks:
+    - name: Test the previous release
+      block:
+        - name: Switch lab configuration to previous release
+          ansible.builtin.lineinfile:
+            path: "{{ deployment_env }}"
+            regexp: '^IMAGE_TAG='
+            line: "IMAGE_TAG={{ previous_tag }}"
+            mode: "0600"
+
+        - name: Deploy previous release
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - --env-file
+              - "{{ deployment_env }}"
+              - -p
+              - "{{ compose_project }}"
+              - -f
+              - "{{ compose_base }}"
+              - -f
+              - "{{ compose_override }}"
+              - up
+              - -d
+          changed_when: true
+
+        - name: Wait for previous release health
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8090/health/
+            status_code: 200
+            return_content: true
+          register: previous_health
+          retries: 24
+          delay: 5
+          until: previous_health.status == 200
+
+        - name: Validate previous release and database
+          ansible.builtin.assert:
+            that:
+              - previous_health.json.status == "healthy"
+              - previous_health.json.database == "connected"
+
+        - name: Record previous release result
+          ansible.builtin.debug:
+            msg: "Previous release passed the application and database health checks."
+
+      rescue:
+        - name: Record previous release failure
+          ansible.builtin.debug:
+            msg: >-
+              Previous release did not pass validation.
+              Recovery will still be attempted in the next task.
+
+      always:
+        - name: Restore stable release tag
+          ansible.builtin.lineinfile:
+            path: "{{ deployment_env }}"
+            regexp: '^IMAGE_TAG='
+            line: "IMAGE_TAG={{ stable_tag }}"
+            mode: "0600"
+
+        - name: Redeploy stable release
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - --env-file
+              - "{{ deployment_env }}"
+              - -p
+              - "{{ compose_project }}"
+              - -f
+              - "{{ compose_base }}"
+              - -f
+              - "{{ compose_override }}"
+              - up
+              - -d
+          changed_when: true
+
+        - name: Verify stable release recovery
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8090/health/
+            status_code: 200
+            return_content: true
+          register: recovery_health
+          retries: 30
+          delay: 5
+          until: recovery_health.status == 200
+
+        - name: Assert stable release and database recovered
+          ansible.builtin.assert:
+            that:
+              - recovery_health.json.status == "healthy"
+              - recovery_health.json.database == "connected"
+            fail_msg: "Recovery validation failed; investigate the lab before proceeding."
+
+        - name: Report recovery result
+          ansible.builtin.debug:
+            msg:
+              - "Restored release: {{ stable_tag }}"
+              - "Application status: {{ recovery_health.json.status }}"
+              - "Database status: {{ recovery_health.json.database }}"

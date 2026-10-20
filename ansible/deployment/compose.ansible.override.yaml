@@ -1,0 +1,12 @@
+services:
+  nginx:
+    ports:
+      - "127.0.0.1:8090:80"
+
+networks:
+  deploy_net:
+    name: evcharging_ansible_lab_net
+
+volumes:
+  deploy_postgres_data:
+    name: evcharging_ansible_lab_postgres_data

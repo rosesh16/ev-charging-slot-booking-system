@@ -1,0 +1,63 @@
+---
+- name: Deploy and validate the isolated EV Charging lab
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    project_dir: /mnt/c/DevOps_Project
+    compose_base: "{{ project_dir }}/compose.deploy.yaml"
+    compose_override: "{{ project_dir }}/ansible/deployment/compose.ansible.override.yaml"
+    deployment_env: "{{ lookup('env', 'HOME') }}/ev-ansible-lab/deployment.env"
+    compose_project: evcharging_ansible_lab
+
+  tasks:
+    - name: Start isolated deployment
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --env-file
+          - "{{ deployment_env }}"
+          - -p
+          - "{{ compose_project }}"
+          - -f
+          - "{{ compose_base }}"
+          - -f
+          - "{{ compose_override }}"
+          - up
+          - -d
+      register: compose_up
+      changed_when: >
+        'Creating' in compose_up.stdout or
+        'Created' in compose_up.stdout or
+        'Starting' in compose_up.stdout or
+        'Started' in compose_up.stdout or
+        'Pulling' in compose_up.stdout
+
+    - name: Wait for application health endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8090/health/
+        method: GET
+        status_code: 200
+        return_content: true
+      register: health_result
+      retries: 30
+      delay: 5
+      until: health_result.status == 200
+
+    - name: Confirm database connectivity in health response
+      ansible.builtin.assert:
+        that:
+          - health_result.json.status == "healthy"
+          - health_result.json.database == "connected"
+        fail_msg: "Application or database health validation failed."
+
+    - name: Report deployment health
+      ansible.builtin.debug:
+        msg:
+          - "Deployment project: {{ compose_project }}"
+          - "Health endpoint: http://127.0.0.1:8090/health/"
+          - "Application status: {{ health_result.json.status }}"
+          - "Database status: {{ health_result.json.database }}"

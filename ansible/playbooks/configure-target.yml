@@ -1,0 +1,55 @@
+---
+- name: Configure EV Charging deployment target
+  hosts: ev_targets
+  become: true
+  gather_facts: true
+
+  vars:
+    deployment_user: evdeploy
+    deployment_root: /opt/ev-charging
+    required_packages:
+      - ca-certificates
+      - curl
+      - python3
+      - python3-venv
+      - openssh-server
+
+  tasks:
+    - name: Install required system packages
+      ansible.builtin.apt:
+        name: "{{ required_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create deployment user
+      ansible.builtin.user:
+        name: "{{ deployment_user }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deployment_user }}"
+        group: "{{ deployment_user }}"
+        mode: "0750"
+      loop:
+        - "{{ deployment_root }}"
+        - "{{ deployment_root }}/releases"
+        - "{{ deployment_root }}/shared"
+        - "{{ deployment_root }}/logs"
+
+    - name: Create managed deployment configuration
+      ansible.builtin.copy:
+        dest: "{{ deployment_root }}/shared/deployment.env.example"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          APPLICATION_NAME=ev-charging-slot-booking
+          DEPLOYMENT_ENVIRONMENT=ansible-lab
+          HEALTHCHECK_PATH=/health/
+          APPLICATION_PORT=8000
