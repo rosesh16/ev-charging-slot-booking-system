@@ -32,6 +32,30 @@ pipeline {
             }
         }
 
+        stage('Frontend Dependencies') {
+            steps {
+                bat 'npm --prefix frontend ci'
+            }
+        }
+
+        stage('Frontend Lint') {
+            steps {
+                bat 'npm --prefix frontend run lint'
+            }
+        }
+
+        stage('Frontend Build') {
+            steps {
+                bat 'npm --prefix frontend run build'
+            }
+        }
+
+        stage('Build Production Nginx Image') {
+            steps {
+                bat 'docker build -f nginx/Dockerfile -t ev-charging-slot-booking-nginx:ci .'
+            }
+        }
+
         stage('Build CI Images') {
             steps {
                 bat 'docker compose -f compose.ci.yaml -p "%COMPOSE_PROJECT_NAME%" build'
