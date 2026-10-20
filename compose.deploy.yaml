@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deploy_evcharging}
+      POSTGRES_USER: ${POSTGRES_USER:-deploy_evapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-deploy_secret_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-deploy_evapp} -d $${POSTGRES_DB:-deploy_evcharging}"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+    volumes:
+      - deploy_postgres_data:/var/lib/postgresql/data
+    networks:
+      - deploy_net
+
+  web:
+    image: ${WEB_IMAGE:-127.0.0.1:5000/ev-charging-slot-booking-web}:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deploy_evcharging}
+      POSTGRES_USER: ${POSTGRES_USER:-deploy_evapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-deploy_secret_password}
+      DB_HOST: db
+      DB_PORT: "5432"
+      SECRET_KEY: ${SECRET_KEY:-deploy-secret-key-3849182947192847}
+      DEBUG: "0"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,web,nginx}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - deploy_net
+
+  nginx:
+    image: ${NGINX_IMAGE:-127.0.0.1:5000/ev-charging-slot-booking-nginx}:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DEPLOY_NGINX_PORT:-8088}:80"
+    depends_on:
+      - web
+    networks:
+      - deploy_net
+
+networks:
+  deploy_net:
+    name: ${DEPLOY_NETWORK:-evcharging_deploy_net}
+
+volumes:
+  deploy_postgres_data:
+    name: ${DEPLOY_VOLUME:-evcharging_deploy_postgres_data}
