@@ -31,3 +31,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+frontend/dist/
+frontend/node_modules/
