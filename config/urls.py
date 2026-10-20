@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from config.views import HealthCheckView
-from stations.views import ChargerListView
+from stations.views import ChargerAvailabilityView, ChargerListView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,5 +27,10 @@ urlpatterns = [
     path('api/vehicles/', include('vehicles.urls')),
     path('api/stations/', include('stations.urls')),
     path('api/chargers/', ChargerListView.as_view(), name='charger-list'),
+    path(
+        'api/chargers/<int:charger_id>/availability/',
+        ChargerAvailabilityView.as_view(),
+        name='charger-availability',
+    ),
     path('api/bookings/', include('bookings.urls')),
 ]

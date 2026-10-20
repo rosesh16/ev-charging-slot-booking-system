@@ -1,3 +1,6 @@
+from datetime import timedelta
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 from stations.models import Charger, Station
 
@@ -82,3 +85,49 @@ class ChargerFilterSerializer(serializers.Serializer):
             "incorrect_type": "Station ID must be a valid integer.",
         },
     )
+
+
+class ChargerAvailabilityQuerySerializer(serializers.Serializer):
+    start = serializers.CharField(required=True)
+    end = serializers.CharField(required=True)
+
+    def validate_start(self, value):
+        dt = parse_datetime(value)
+        if dt is None:
+            raise serializers.ValidationError("Must be a valid ISO 8601 timestamp.")
+        if timezone.is_naive(dt):
+            raise serializers.ValidationError(
+                "Timestamp must be timezone-aware (e.g. including 'Z' or '+00:00')."
+            )
+        return dt
+
+    def validate_end(self, value):
+        dt = parse_datetime(value)
+        if dt is None:
+            raise serializers.ValidationError("Must be a valid ISO 8601 timestamp.")
+        if timezone.is_naive(dt):
+            raise serializers.ValidationError(
+                "Timestamp must be timezone-aware (e.g. including 'Z' or '+00:00')."
+            )
+        return dt
+
+    def validate(self, attrs):
+        start = attrs.get("start")
+        end = attrs.get("end")
+
+        if start >= end:
+            raise serializers.ValidationError(
+                {"end": "'start' must be earlier than 'end'."}
+            )
+
+        if end <= timezone.now():
+            raise serializers.ValidationError(
+                {"end": "The requested time window must end in the future."}
+            )
+
+        if end - start > timedelta(hours=24):
+            raise serializers.ValidationError(
+                {"end": "The requested time window cannot exceed 24 hours."}
+            )
+
+        return attrs
